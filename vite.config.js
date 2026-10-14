@@ -11,7 +11,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.svg', 'apple-touch-icon.svg'],
+            includeAssets: ['favicon.png', 'apple-touch-icon.png'],
             manifest: {
                 name: 'Тренировки',
                 short_name: 'Тренировки',
@@ -23,12 +23,10 @@ export default defineConfig({
                 start_url: '/',
                 scope: '/',
                 icons: [
-                    {
-                        src: 'icon.svg',
-                        sizes: 'any',
-                        type: 'image/svg+xml',
-                        purpose: 'any maskable',
-                    },
+                    { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+                    { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+                    // С отступом 10%: Android обрезает иконку кругом/«капелькой»
+                    { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
                 ],
             },
         }),
