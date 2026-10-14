@@ -2,9 +2,9 @@
 // Автоматически сохраняет любые изменения в localStorage.
 
 import { useCallback, useEffect, useState } from 'react'
-import type { Exercise, Workout, WorkoutSet } from '../types'
+import type { Exercise, SetPlan, Workout, WorkoutSet } from '../types'
 import { loadWorkouts, saveWorkouts } from '../utils/storage'
-import { cloneSets } from '../utils/workouts'
+import { addSetsTo, cloneSets, nextSet } from '../utils/workouts'
 import { uid } from '../utils/id'
 
 export function useWorkouts() {
@@ -42,6 +42,7 @@ export function useWorkouts() {
         exercises: src.exercises.map((e) => ({
           id: uid(),
           name: e.name,
+          catalogId: e.catalogId,
           sets: cloneSets(e.sets, uid),
         })),
       }
@@ -71,26 +72,29 @@ export function useWorkouts() {
 
   // --- Упражнения ---
 
-  const addExercise = useCallback((workoutId: string, name: string) => {
-    const exercise: Exercise = { id: uid(), name: name.trim(), sets: [] }
-    setWorkouts((prev) =>
-      prev.map((w) =>
-        w.id === workoutId
-          ? { ...w, exercises: [...w.exercises, exercise] }
-          : w,
-      ),
-    )
-  }, [])
+  const addExercise = useCallback(
+    (workoutId: string, name: string, catalogId?: string) => {
+      const exercise: Exercise = { id: uid(), name: name.trim(), catalogId, sets: [] }
+      setWorkouts((prev) =>
+        prev.map((w) =>
+          w.id === workoutId
+            ? { ...w, exercises: [...w.exercises, exercise] }
+            : w,
+        ),
+      )
+    },
+    [],
+  )
 
   const updateExercise = useCallback(
-    (workoutId: string, exerciseId: string, name: string) => {
+    (workoutId: string, exerciseId: string, name: string, catalogId?: string) => {
       setWorkouts((prev) =>
         prev.map((w) =>
           w.id === workoutId
             ? {
                 ...w,
                 exercises: w.exercises.map((e) =>
-                  e.id === exerciseId ? { ...e, name } : e,
+                  e.id === exerciseId ? { ...e, name, catalogId } : e,
                 ),
               }
             : w,
@@ -113,6 +117,14 @@ export function useWorkouts() {
     [],
   )
 
+  // Преобразование упражнений во всех тренировках — для синхронизации со
+  // справочником (переименование, привязка старых записей).
+  const mapAllExercises = useCallback((fn: (e: Exercise) => Exercise) => {
+    setWorkouts((prev) =>
+      prev.map((w) => ({ ...w, exercises: w.exercises.map(fn) })),
+    )
+  }, [])
+
   // --- Подходы ---
 
   const addSet = useCallback(
@@ -122,19 +134,24 @@ export function useWorkouts() {
           if (w.id !== workoutId) return w
           return {
             ...w,
-            exercises: w.exercises.map((e) => {
-              if (e.id !== exerciseId) return e
-              // Новый подход наследует значения предыдущего — меньше ввода.
-              const last = e.sets[e.sets.length - 1]
-              const set: WorkoutSet = {
-                id: uid(),
-                weight: last ? last.weight : 0,
-                reps: last ? last.reps : 0,
-              }
-              return { ...e, sets: [...e.sets, set] }
-            }),
+            exercises: w.exercises.map((e) =>
+              e.id === exerciseId ? { ...e, sets: [...e.sets, nextSet(e.sets, uid)] } : e,
+            ),
           }
         }),
+      )
+    },
+    [],
+  )
+
+  const addSets = useCallback(
+    (workoutId: string, exerciseId: string, count: number, plan: SetPlan) => {
+      setWorkouts((prev) =>
+        prev.map((w) =>
+          w.id === workoutId
+            ? { ...w, exercises: addSetsTo(w.exercises, exerciseId, count, plan, uid) }
+            : w,
+        ),
       )
     },
     [],
@@ -200,7 +217,9 @@ export function useWorkouts() {
     addExercise,
     updateExercise,
     deleteExercise,
+    mapAllExercises,
     addSet,
+    addSets,
     updateSet,
     deleteSet,
   }

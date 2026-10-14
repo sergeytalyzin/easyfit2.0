@@ -1,7 +1,13 @@
-import { BottomSheet } from './BottomSheet'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
+import { Badge } from '@/components/ui/badge'
 import { Avatar } from './Avatar'
-import type { Person } from '../types'
-import styles from './CopyWorkoutSheet.module.css'
+import type { Person } from '@/types'
 
 interface Props {
   open: boolean
@@ -21,19 +27,26 @@ export function CopyWorkoutSheet({
   onPick,
 }: Props) {
   return (
-    <BottomSheet open={open} onClose={onClose}>
-      <h2 className={styles.title}>Скопировать тренировку</h2>
-      <div className={styles.list}>
-        {people.map((p) => (
-          <button key={p.id} className={styles.row} onClick={() => onPick(p.id)}>
-            <Avatar name={p.name} avatar={p.avatar} size={44} />
-            <span className={styles.name}>{p.name}</span>
-            {p.id === currentPersonId && (
-              <span className={styles.hint}>здесь же</span>
-            )}
-          </button>
-        ))}
-      </div>
-    </BottomSheet>
+    <Drawer open={open} onOpenChange={(o) => !o && onClose()}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Скопировать тренировку</DrawerTitle>
+          <DrawerDescription>Кому добавить копию шаблона</DrawerDescription>
+        </DrawerHeader>
+        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-3 pb-6">
+          {people.map((p) => (
+            <button
+              key={p.id}
+              className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-accent active:bg-accent"
+              onClick={() => onPick(p.id)}
+            >
+              <Avatar name={p.name} avatar={p.avatar} size={44} />
+              <span className="min-w-0 flex-1 truncate text-[17px] font-bold">{p.name}</span>
+              {p.id === currentPersonId && <Badge variant="secondary">здесь же</Badge>}
+            </button>
+          ))}
+        </div>
+      </DrawerContent>
+    </Drawer>
   )
 }

@@ -17,6 +17,19 @@ export function dayKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+// YYYY-MM-DD → Date (полночь по локальному времени).
+export function parseDayKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+// Понедельник недели, в которую попадает дата (полночь по локальному времени).
+export function startOfWeek(d: Date): Date {
+  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+  return monday
+}
+
 // YYYY-MM-DD → «25 июня».
 export function formatDayKey(key: string): string {
   const [y, m, d] = key.split('-').map(Number)

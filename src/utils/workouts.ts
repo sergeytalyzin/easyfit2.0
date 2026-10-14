@@ -1,4 +1,6 @@
-import type { Exercise, Workout, WorkoutSet } from '../types'
+import type { Exercise, SetPlan, Workout, WorkoutSet } from '../types'
+import { isEffectiveSet } from './sets'
+import { parseDayKey, startOfWeek } from './date'
 
 // Тренировки конкретного человека — единый фильтр по personId,
 // чтобы данные разных людей не смешивались.
@@ -22,87 +24,38 @@ export function workoutTitle(w: Workout): string {
   return w.name.trim() || 'Без названия'
 }
 
-// --- Статистика по упражнениям ---
-
-// Один «сеанс» упражнения: данные одной тренировки по этому упражнению.
-export interface ExerciseSession {
-  date: string
-  maxWeight: number // максимальный вес в этот день
-  topReps: number // повторения в подходе с максимальным весом
-  volume: number // суммарный тоннаж (вес × повторения)
+// Тоннаж: сумма вес × повторения по выполненным подходам.
+export function exercisesVolume(exercises: Exercise[]): number {
+  return exercises.reduce(
+    (sum, e) =>
+      sum + e.sets.filter(isEffectiveSet).reduce((s, set) => s + set.weight * set.reps, 0),
+    0,
+  )
 }
 
-// Сводка по одному упражнению: его сеансы по возрастанию даты + пики.
-export interface ExerciseStat {
-  name: string
-  sessions: ExerciseSession[] // отсортированы по дате (старые → новые)
-  bestWeight: number // лучший вес за всё время
-}
-
-// Группирует подходы по названию упражнения, чтобы строить прогресс по весам.
-// Принимает уже отфильтрованный список сеансов (дата + упражнения) — подходит
-// и для шаблонов, и для выполненных тренировок. Упражнения без названия или
-// без подходов пропускаем. Группировка регистронезависимая.
-export function exerciseStats(
-  sessions: { date: string; exercises: Exercise[] }[],
-): ExerciseStat[] {
-  const map = new Map<string, ExerciseStat>()
-
-  for (const w of sessions) {
-    for (const ex of w.exercises) {
-      const name = ex.name.trim()
-      if (!name || ex.sets.length === 0) continue
-
-      const maxWeight = Math.max(...ex.sets.map((s) => s.weight))
-      const top = ex.sets.reduce(
-        (best, s) => (s.weight > best.weight ? s : best),
-        ex.sets[0],
-      )
-      const volume = ex.sets.reduce((sum, s) => sum + s.weight * s.reps, 0)
-
-      const key = name.toLowerCase()
-      let stat = map.get(key)
-      if (!stat) {
-        stat = { name, sessions: [], bestWeight: 0 }
-        map.set(key, stat)
-      }
-      stat.sessions.push({
-        date: w.date,
-        maxWeight,
-        topReps: top.reps,
-        volume,
-      })
-      stat.bestWeight = Math.max(stat.bestWeight, maxWeight)
-    }
+// Серия недель подряд (пн–вс) хотя бы с одной тренировкой. Текущая неделя
+// без тренировки серию не обрывает — она ещё не закончилась.
+export function weekStreak(dayKeys: string[], today: Date): number {
+  const weeks = new Set(dayKeys.map((k) => startOfWeek(parseDayKey(k)).getTime()))
+  const cursor = startOfWeek(today)
+  if (!weeks.has(cursor.getTime())) cursor.setDate(cursor.getDate() - 7)
+  let streak = 0
+  while (weeks.has(cursor.getTime())) {
+    streak++
+    cursor.setDate(cursor.getDate() - 7)
   }
-
-  const result = [...map.values()]
-  for (const stat of result) {
-    stat.sessions.sort((a, b) => (a.date < b.date ? -1 : 1))
-  }
-  // Упражнения с самым свежим сеансом — выше.
-  result.sort((a, b) => {
-    const la = a.sessions[a.sessions.length - 1].date
-    const lb = b.sessions[b.sessions.length - 1].date
-    return la < lb ? 1 : -1
-  })
-  return result
+  return streak
 }
 
 // Глубокая копия подходов с новыми id — для дублирования тренировки.
+// Копируются план и диапазоны; отметки факта (done/plan) — нет.
 export function cloneSets(sets: WorkoutSet[], makeId: () => string): WorkoutSet[] {
-  return sets.map((s) => ({ id: makeId(), weight: s.weight, reps: s.reps }))
-}
-
-// Глубокая копия упражнений с новыми id — снимок шаблона.
-export function cloneExercises(
-  exercises: Exercise[],
-  makeId: () => string,
-): Exercise[] {
-  return exercises.map((e) => ({
+  return sets.map((s) => ({
     id: makeId(),
-    name: e.name,
-    sets: cloneSets(e.sets, makeId),
+    weight: s.weight,
+    reps: s.reps,
+    weightMax: s.weightMax,
+    repsMax: s.repsMax,
   }))
 }
 
@@ -114,16 +67,20 @@ export function addExerciseTo(
   exercises: Exercise[],
   name: string,
   makeId: () => string,
+  catalogId?: string,
 ): Exercise[] {
-  return [...exercises, { id: makeId(), name: name.trim(), sets: [] }]
+  return [...exercises, { id: makeId(), name: name.trim(), catalogId, sets: [] }]
 }
 
 export function renameExerciseIn(
   exercises: Exercise[],
   exerciseId: string,
   name: string,
+  catalogId?: string,
 ): Exercise[] {
-  return exercises.map((e) => (e.id === exerciseId ? { ...e, name } : e))
+  return exercises.map((e) =>
+    e.id === exerciseId ? { ...e, name, catalogId } : e,
+  )
 }
 
 export function removeExerciseFrom(
@@ -140,15 +97,43 @@ export function addSetTo(
 ): Exercise[] {
   return exercises.map((e) => {
     if (e.id !== exerciseId) return e
-    // Новый подход наследует значения предыдущего — меньше ввода.
-    const last = e.sets[e.sets.length - 1]
-    const set: WorkoutSet = {
-      id: makeId(),
-      weight: last ? last.weight : 0,
-      reps: last ? last.reps : 0,
-    }
-    return { ...e, sets: [...e.sets, set] }
+    return { ...e, sets: [...e.sets, nextSet(e.sets, makeId)] }
   })
+}
+
+// Новый подход наследует значения предыдущего — меньше ввода. В выполненной
+// тренировке с отметками новый подход ещё не отмечен выполненным.
+export function nextSet(sets: WorkoutSet[], makeId: () => string): WorkoutSet {
+  const last = sets[sets.length - 1]
+  return {
+    id: makeId(),
+    weight: last ? last.weight : 0,
+    reps: last ? last.reps : 0,
+    weightMax: last?.weightMax,
+    repsMax: last?.repsMax,
+    done: last?.done === undefined ? undefined : false,
+  }
+}
+
+// Сразу несколько одинаковых подходов: «3 × 8–12 по 60 кг».
+export function addSetsTo(
+  exercises: Exercise[],
+  exerciseId: string,
+  count: number,
+  plan: SetPlan,
+  makeId: () => string,
+): Exercise[] {
+  return exercises.map((e) =>
+    e.id === exerciseId
+      ? {
+          ...e,
+          sets: [
+            ...e.sets,
+            ...Array.from({ length: count }, () => ({ id: makeId(), ...plan })),
+          ],
+        }
+      : e,
+  )
 }
 
 export function updateSetIn(

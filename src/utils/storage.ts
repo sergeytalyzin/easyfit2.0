@@ -2,13 +2,14 @@
 // Это единственное место, которое знает про localStorage — поэтому
 // в будущем легко заменить хранилище (IndexedDB, экспорт/импорт, облако).
 
-import type { CompletedWorkout, Person, Workout } from '../types'
+import type { CatalogExercise, CompletedWorkout, Person, Workout } from '../types'
 import { uid } from './id'
 
 const WORKOUTS_KEY = 'gym-tracker:workouts'
 const COMPLETED_KEY = 'gym-tracker:completed'
 const PEOPLE_KEY = 'gym-tracker:people'
 const FAVORITE_KEY = 'gym-tracker:favorite'
+const CUSTOM_EXERCISES_KEY = 'gym-tracker:custom-exercises'
 // Версия схемы данных. Пригодится для будущих миграций при изменении формата.
 const SCHEMA_VERSION = 2
 
@@ -158,6 +159,35 @@ export function saveFavorite(personId: string | null): void {
   }
 }
 
+// --- Собственные упражнения справочника ---
+// Стандартные упражнения — константы во frontend, здесь только пользовательские.
+
+interface StoredCustomExercises {
+  version: number
+  exercises: CatalogExercise[]
+}
+
+export function loadCustomExercises(): CatalogExercise[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_EXERCISES_KEY)
+    if (!raw) return []
+    const data = JSON.parse(raw) as StoredCustomExercises
+    return Array.isArray(data?.exercises) ? data.exercises : []
+  } catch (e) {
+    console.error('Не удалось загрузить упражнения:', e)
+    return []
+  }
+}
+
+export function saveCustomExercises(exercises: CatalogExercise[]): void {
+  try {
+    const data: StoredCustomExercises = { version: SCHEMA_VERSION, exercises }
+    localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(data))
+  } catch (e) {
+    console.error('Не удалось сохранить упражнения:', e)
+  }
+}
+
 // Удобно для будущего экспорта данных.
 export function exportData(): string {
   return JSON.stringify(
@@ -166,6 +196,7 @@ export function exportData(): string {
       people: loadPeople(),
       workouts: loadWorkouts(),
       completed: loadCompleted(),
+      customExercises: loadCustomExercises(),
     },
     null,
     2,

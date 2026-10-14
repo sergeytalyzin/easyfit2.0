@@ -1,9 +1,13 @@
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -13,8 +17,8 @@ export default defineConfig({
         name: 'Тренировки',
         short_name: 'Тренировки',
         description: 'Простой дневник тренировок в зале',
-        theme_color: '#007aff',
-        background_color: '#f2f2f7',
+        theme_color: '#10151B',
+        background_color: '#10151B',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

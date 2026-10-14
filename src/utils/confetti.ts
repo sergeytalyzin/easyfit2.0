@@ -2,7 +2,7 @@
 // Рисуется на временном canvas поверх интерфейса, не перехватывает клики
 // (pointer-events: none) и сам удаляется по окончании (~1.4 c).
 
-const COLORS = ['#007aff', '#34c759', '#ffb300', '#ff3b30', '#5ac8fa', '#ffffff']
+const COLORS = ['#B7F25B', '#E4FFB8', '#7FD13B', '#F5F7F8', '#88969F', '#FFC53D']
 
 interface Particle {
   x: number

@@ -8,16 +8,59 @@ export interface Person {
   createdAt: string // ISO-строка
 }
 
+// План подхода: точное значение или диапазон (min = weight/reps, max — необязателен).
+export interface SetPlan {
+  weight: number
+  weightMax?: number
+  reps: number
+  repsMax?: number
+}
+
+// Подход. В шаблоне weight/reps — план (точно или нижняя граница диапазона).
+// В выполненной тренировке weight/reps — факт, plan — снимок плана.
+// Все дополнительные поля необязательны: старые данные остаются валидными.
 export interface WorkoutSet {
   id: string
   weight: number // вес в кг
   reps: number // количество повторений
+  weightMax?: number // только шаблон: верх диапазона веса
+  repsMax?: number // только шаблон: верх диапазона повторений
+  done?: boolean // только факт: подход выполнен; нет поля (старые записи) — считаем выполненным
+  plan?: SetPlan // только факт: что было запланировано
 }
 
 export interface Exercise {
   id: string
+  // Снимок названия: по нему строится история и статистика. Остаётся даже
+  // если упражнение удалено из справочника.
   name: string
+  // Ссылка на упражнение справочника. Нет у старых записей (до справочника).
+  catalogId?: string
   sets: WorkoutSet[]
+}
+
+export type ExerciseCategory =
+  | 'chest'
+  | 'back'
+  | 'shoulders'
+  | 'biceps'
+  | 'triceps'
+  | 'quads'
+  | 'hamstrings'
+  | 'glutes'
+  | 'calves'
+  | 'core'
+  | 'forearms'
+  | 'traps'
+  | 'cardio'
+  | 'other'
+
+// Упражнение справочника: стандартное (константа) или собственное (custom).
+export interface CatalogExercise {
+  id: string
+  name: string
+  category: ExerciseCategory
+  custom?: boolean
 }
 
 export interface Workout {

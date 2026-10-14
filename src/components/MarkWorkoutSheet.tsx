@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react'
-import { BottomSheet } from './BottomSheet'
-import { Button } from './Button'
+import { Check } from 'lucide-react'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
+import { Button } from '@/components/ui/button'
 import { Calendar } from './Calendar'
-import { dayKey } from '../utils/date'
-import type { Workout } from '../types'
-import styles from './MarkWorkoutSheet.module.css'
+import { dayKey } from '@/utils/date'
+import { cn } from '@/lib/utils'
+import type { Workout } from '@/types'
 
 interface Props {
   open: boolean
@@ -49,48 +57,76 @@ export function MarkWorkoutSheet({
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose}>
-      <h2 className={styles.title}>Отметить «{template.name}»</h2>
+    <Drawer open={open} onOpenChange={(o) => !o && onClose()}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle className="truncate">Отметить «{template.name}»</DrawerTitle>
+          <DrawerDescription>Выберите день и упражнения — дальше внесёте фактические вес и повторения</DrawerDescription>
+        </DrawerHeader>
 
-      <Calendar
-        flat
-        selectedKey={selectedDate}
-        markedKeys={markedKeys}
-        onSelect={setSelectedDate}
-      />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
+          <Calendar
+            flat
+            selectedKey={selectedDate}
+            markedKeys={markedKeys}
+            onSelect={setSelectedDate}
+          />
 
-      {template.exercises.length === 0 ? (
-        <p className={styles.empty}>В шаблоне пока нет упражнений.</p>
-      ) : (
-        <>
-          <p className={styles.subhead}>Какие упражнения сделали?</p>
-          <div className={styles.list}>
-            {template.exercises.map((ex) => {
-              const on = checked.has(ex.id)
-              return (
-                <button
-                  key={ex.id}
-                  className={`${styles.row} ${on ? styles.rowOn : ''}`}
-                  onClick={() => toggle(ex.id)}
-                >
-                  <span className={styles.check}>{on ? '✓' : ''}</span>
-                  <span className={styles.name}>{ex.name || 'Без названия'}</span>
-                  <span className={styles.count}>{ex.sets.length} подх.</span>
-                </button>
-              )
-            })}
-          </div>
-        </>
-      )}
+          {template.exercises.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              В шаблоне пока нет упражнений.
+            </p>
+          ) : (
+            <>
+              <h3 className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                Какие упражнения сделали?
+              </h3>
+              <div className="flex flex-col gap-1.5">
+                {template.exercises.map((ex) => {
+                  const on = checked.has(ex.id)
+                  return (
+                    <button
+                      key={ex.id}
+                      className={cn(
+                        'flex min-h-12 w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left transition-colors',
+                        on
+                          ? 'border-primary/40 bg-primary/10'
+                          : 'border-transparent bg-background/40 opacity-60',
+                      )}
+                      onClick={() => toggle(ex.id)}
+                      aria-pressed={on}
+                    >
+                      <span
+                        className={cn(
+                          'flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                          on ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/50',
+                        )}
+                      >
+                        {on && <Check className="size-3.5" strokeWidth={3} />}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
+                        {ex.name || 'Без названия'}
+                      </span>
+                      <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                        {ex.sets.length} подх.
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
 
-      <div className={styles.actions}>
-        <Button full variant="secondary" onClick={onClose}>
-          Отменить
-        </Button>
-        <Button full disabled={checked.size === 0} onClick={save}>
-          Сохранить
-        </Button>
-      </div>
-    </BottomSheet>
+        <DrawerFooter className="grid grid-cols-2">
+          <Button variant="secondary" onClick={onClose}>
+            Отменить
+          </Button>
+          <Button disabled={checked.size === 0} onClick={save}>
+            Записать результат
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }

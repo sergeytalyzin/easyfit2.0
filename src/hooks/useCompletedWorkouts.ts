@@ -2,18 +2,20 @@
 // Хранится отдельно от шаблонов и автоматически пишется в localStorage.
 
 import { useCallback, useEffect, useState } from 'react'
-import type { CompletedWorkout, Workout, WorkoutSet } from '../types'
+import type { CompletedWorkout, Exercise, SetPlan, Workout, WorkoutSet } from '../types'
 import { loadCompleted, saveCompleted } from '../utils/storage'
 import {
   addExerciseTo,
   addSetTo,
-  cloneExercises,
+  addSetsTo,
   removeExerciseFrom,
   removeSetFrom,
   renameExerciseIn,
   updateSetIn,
 } from '../utils/workouts'
 import { uid } from '../utils/id'
+import { isEffectiveSet, planOf } from '../utils/sets'
+import { sameExercise } from '../utils/exercises'
 
 export function useCompletedWorkouts() {
   const [completed, setCompleted] = useState<CompletedWorkout[]>(() =>
@@ -24,8 +26,10 @@ export function useCompletedWorkouts() {
     saveCompleted(completed)
   }, [completed])
 
-  // Отметить шаблон выполненным на дату (YYYY-MM-DD): снимаем копию упражнений.
+  // Отметить шаблон выполненным на дату (YYYY-MM-DD) — начать запись факта.
   // exerciseIds — какие упражнения реально сделаны (если не задано — все).
+  // Каждый подход: снимок плана + факт, подставленный из прошлого результата
+  // по этому упражнению (или нижняя граница плана), пока не отмеченный ✓.
   const completeTemplate = useCallback(
     (
       template: Workout,
@@ -42,12 +46,26 @@ export function useCompletedWorkouts() {
         name: template.name,
         date: dayKeyValue,
         createdAt: new Date().toISOString(),
-        exercises: cloneExercises(source, uid),
+        exercises: source.map((ex) => {
+          const last = lastResult(completed, ex, dayKeyValue)
+          return {
+            id: uid(),
+            name: ex.name,
+            catalogId: ex.catalogId,
+            sets: ex.sets.map((s, i) => ({
+              id: uid(),
+              weight: last[i]?.weight ?? s.weight,
+              reps: last[i]?.reps ?? s.reps,
+              done: false,
+              plan: planOf(s),
+            })),
+          }
+        }),
       }
       setCompleted((prev) => [record, ...prev])
       return record
     },
-    [],
+    [completed],
   )
 
   const deleteCompleted = useCallback((id: string) => {
@@ -77,16 +95,23 @@ export function useCompletedWorkouts() {
   }, [])
 
   const addExercise = useCallback(
-    (id: string, name: string) =>
-      patchExercises(id, (ex) => addExerciseTo(ex, name, uid)),
+    (id: string, name: string, catalogId?: string) =>
+      patchExercises(id, (ex) => addExerciseTo(ex, name, uid, catalogId)),
     [patchExercises],
   )
 
   const updateExercise = useCallback(
-    (id: string, exerciseId: string, name: string) =>
-      patchExercises(id, (ex) => renameExerciseIn(ex, exerciseId, name)),
+    (id: string, exerciseId: string, name: string, catalogId?: string) =>
+      patchExercises(id, (ex) => renameExerciseIn(ex, exerciseId, name, catalogId)),
     [patchExercises],
   )
+
+  // Преобразование упражнений во всех записях — для синхронизации со справочником.
+  const mapAllExercises = useCallback((fn: (e: Exercise) => Exercise) => {
+    setCompleted((prev) =>
+      prev.map((c) => ({ ...c, exercises: c.exercises.map(fn) })),
+    )
+  }, [])
 
   const deleteExercise = useCallback(
     (id: string, exerciseId: string) =>
@@ -97,6 +122,12 @@ export function useCompletedWorkouts() {
   const addSet = useCallback(
     (id: string, exerciseId: string) =>
       patchExercises(id, (ex) => addSetTo(ex, exerciseId, uid)),
+    [patchExercises],
+  )
+
+  const addSets = useCallback(
+    (id: string, exerciseId: string, count: number, plan: SetPlan) =>
+      patchExercises(id, (ex) => addSetsTo(ex, exerciseId, count, plan, uid)),
     [patchExercises],
   )
 
@@ -125,10 +156,32 @@ export function useCompletedWorkouts() {
     addExercise,
     updateExercise,
     deleteExercise,
+    mapAllExercises,
     addSet,
+    addSets,
     updateSet,
     deleteSet,
   }
 }
 
 export type CompletedWorkoutsApi = ReturnType<typeof useCompletedWorkouts>
+
+// Выполненные подходы упражнения из последней записи не позже даты day.
+function lastResult(
+  records: CompletedWorkout[],
+  exercise: Exercise,
+  day: string,
+): WorkoutSet[] {
+  const sorted = records
+    .filter((r) => r.date <= day)
+    .sort((a, b) =>
+      a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date),
+    )
+  for (const r of sorted) {
+    const sets = r.exercises
+      .filter((e) => sameExercise(e, exercise))
+      .flatMap((e) => e.sets.filter(isEffectiveSet))
+    if (sets.length) return sets
+  }
+  return []
+}

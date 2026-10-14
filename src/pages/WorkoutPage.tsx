@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useWorkoutsContext } from '../hooks/WorkoutsContext'
-import { usePeopleContext } from '../hooks/PeopleContext'
-import { useCompletedWorkoutsContext } from '../hooks/CompletedWorkoutsContext'
-import { ExerciseItem } from '../components/ExerciseItem'
-import { Button } from '../components/Button'
-import { CopyWorkoutSheet } from '../components/CopyWorkoutSheet'
-import { MarkWorkoutSheet } from '../components/MarkWorkoutSheet'
-import { formatDate } from '../utils/date'
-import { fireConfetti } from '../utils/confetti'
-import styles from './WorkoutPage.module.css'
+import { CalendarDays, CircleCheck, Copy, Settings, Trash2 } from 'lucide-react'
+import { useWorkoutsContext } from '@/hooks/WorkoutsContext'
+import { usePeopleContext } from '@/hooks/PeopleContext'
+import { useCompletedWorkoutsContext } from '@/hooks/CompletedWorkoutsContext'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/PageHeader'
+import { WorkoutHeading } from '@/components/WorkoutHeading'
+import { WorkoutStats } from '@/components/WorkoutStats'
+import { ExerciseList } from '@/components/ExerciseList'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { CopyWorkoutSheet } from '@/components/CopyWorkoutSheet'
+import { MarkWorkoutSheet } from '@/components/MarkWorkoutSheet'
+import { ExerciseCatalogSheet } from '@/components/ExerciseCatalogSheet'
+import { formatDate } from '@/utils/date'
 
 export function WorkoutPage() {
   const { id = '', personId = '' } = useParams()
@@ -17,20 +21,12 @@ export function WorkoutPage() {
   const backToPerson = `/person/${personId}`
   const [copyOpen, setCopyOpen] = useState(false)
   const [markOpen, setMarkOpen] = useState(false)
+  const [catalogOpen, setCatalogOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const { people } = usePeopleContext()
   const { completed, completeTemplate } = useCompletedWorkoutsContext()
-  const {
-    workouts,
-    updateWorkout,
-    copyWorkout,
-    deleteWorkout,
-    addExercise,
-    updateExercise,
-    deleteExercise,
-    addSet,
-    updateSet,
-    deleteSet,
-  } = useWorkoutsContext()
+  const workoutsApi = useWorkoutsContext()
+  const { workouts, updateWorkout, copyWorkout, deleteWorkout } = workoutsApi
 
   // Дни с уже отмеченными тренировками — для точек в календаре.
   const markedKeys = useMemo(
@@ -45,20 +41,16 @@ export function WorkoutPage() {
 
   if (!workout) {
     return (
-      <div className={styles.page}>
-        <button className={styles.back} onClick={() => navigate(backToPerson)}>
-          ‹ Назад
-        </button>
-        <p className={styles.missing}>Тренировка не найдена.</p>
+      <div className="flex flex-col gap-4">
+        <PageHeader onBack={() => navigate(backToPerson)} />
+        <p className="mt-6 text-muted-foreground">Тренировка не найдена.</p>
       </div>
     )
   }
 
   function onDeleteWorkout() {
-    if (confirm('Удалить тренировку целиком?')) {
-      deleteWorkout(workout!.id)
-      navigate(backToPerson, { replace: true })
-    }
+    deleteWorkout(workout!.id)
+    navigate(backToPerson, { replace: true })
   }
 
   function onCopyTo(targetPersonId: string) {
@@ -69,57 +61,69 @@ export function WorkoutPage() {
 
   function onMarkDone(dayKeyValue: string, exerciseIds: string[]) {
     const record = completeTemplate(workout!, dayKeyValue, exerciseIds)
-    if (!record) return // при неуспехе — без конфетти
     setMarkOpen(false)
-    fireConfetti()
-    navigate(`/person/${personId}/progress`)
+    // Дальше — запись факта: что реально сделано в каждом подходе.
+    navigate(`/person/${personId}/completed/${record.id}`, { state: { logging: true } })
   }
 
   return (
-    <div className={styles.page}>
-      <button className={styles.back} onClick={() => navigate(backToPerson)}>
-        ‹ Назад
-      </button>
+    <div className="flex flex-col gap-5 pb-4">
+      <PageHeader
+        onBack={() => navigate(backToPerson)}
+        right={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="-mr-2 [&_svg]:size-[22px]"
+            onClick={() => setCatalogOpen(true)}
+            aria-label="Справочник упражнений"
+          >
+            <Settings />
+          </Button>
+        }
+      />
 
-      <div className={styles.head}>
-        <input
-          className={styles.title}
-          value={workout.name}
-          placeholder="Название тренировки"
-          onChange={(e) => updateWorkout(workout.id, { name: e.target.value })}
+      <WorkoutHeading
+        value={workout.name}
+        onChange={(name) => updateWorkout(workout.id, { name })}
+        subtitle={
+          <>
+            <CalendarDays /> {formatDate(workout.date)}
+          </>
+        }
+      />
+
+      <WorkoutStats exercises={workout.exercises} />
+
+      <Button size="lg" className="w-full" onClick={() => setMarkOpen(true)}>
+        <CircleCheck /> Отметить выполнение
+      </Button>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="px-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          Упражнения
+        </h2>
+        <ExerciseList
+          ownerId={workout.id}
+          exercises={workout.exercises}
+          ops={workoutsApi}
+          mode="plan"
         />
-        <div className={styles.date}>{formatDate(workout.date)}</div>
+      </section>
+
+      <div className="grid gap-2 pt-2 sm:grid-cols-2">
+        <Button variant="secondary" size="lg" onClick={() => setCopyOpen(true)}>
+          <Copy /> Копировать другому
+        </Button>
+        <Button
+          variant="ghost"
+          size="lg"
+          className="text-destructive hover:bg-destructive/10"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 /> Удалить тренировку
+        </Button>
       </div>
-
-      <Button full onClick={() => setMarkOpen(true)}>
-        ✓ Отметить выполнение
-      </Button>
-
-      <div className={styles.exercises}>
-        {workout.exercises.map((ex) => (
-          <ExerciseItem
-            key={ex.id}
-            exercise={ex}
-            onRename={(name) => updateExercise(workout.id, ex.id, name)}
-            onDelete={() => deleteExercise(workout.id, ex.id)}
-            onAddSet={() => addSet(workout.id, ex.id)}
-            onUpdateSet={(setId, patch) => updateSet(workout.id, ex.id, setId, patch)}
-            onDeleteSet={(setId) => deleteSet(workout.id, ex.id, setId)}
-          />
-        ))}
-      </div>
-
-      <Button full variant="secondary" onClick={() => addExercise(workout.id, '')}>
-        + упражнение
-      </Button>
-
-      <Button full variant="secondary" onClick={() => setCopyOpen(true)}>
-        ⧉ Копировать другому
-      </Button>
-
-      <button className={styles.deleteWorkout} onClick={onDeleteWorkout}>
-        Удалить тренировку
-      </button>
 
       <CopyWorkoutSheet
         open={copyOpen}
@@ -135,6 +139,16 @@ export function WorkoutPage() {
         template={workout}
         markedKeys={markedKeys}
         onSave={onMarkDone}
+      />
+
+      <ExerciseCatalogSheet open={catalogOpen} onClose={() => setCatalogOpen(false)} />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Удалить тренировку целиком?"
+        description="Шаблон и его упражнения будут удалены. Отмеченные выполнения останутся в истории."
+        onConfirm={onDeleteWorkout}
       />
     </div>
   )

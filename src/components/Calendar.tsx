@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { dayKey } from '../utils/date'
-import styles from './Calendar.module.css'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { dayKey, parseDayKey } from '@/utils/date'
+import { cn } from '@/lib/utils'
 
 interface Props {
   selectedKey: string // выбранный день YYYY-MM-DD
@@ -11,10 +13,10 @@ interface Props {
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
-// Простой календарь в стиле iOS: месяц, навигация по месяцам, точки на днях
-// с тренировками. Без сторонних библиотек.
+// Календарь месяца: навигация по месяцам, точки на днях с тренировками.
+// Без сторонних библиотек.
 export function Calendar({ selectedKey, markedKeys, onSelect, flat }: Props) {
-  const initial = parseKey(selectedKey)
+  const initial = parseDayKey(selectedKey)
   const [view, setView] = useState({
     year: initial.getFullYear(),
     month: initial.getMonth(),
@@ -26,10 +28,7 @@ export function Calendar({ selectedKey, markedKeys, onSelect, flat }: Props) {
   // Сдвиг: делаем неделю с понедельника (JS getDay: 0 = воскресенье).
   const lead = (first.getDay() + 6) % 7
 
-  const monthLabel = first.toLocaleDateString('ru-RU', {
-    month: 'long',
-    year: 'numeric',
-  })
+  const monthLabel = first.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
 
   function shiftMonth(delta: number) {
     setView((v) => {
@@ -44,28 +43,20 @@ export function Calendar({ selectedKey, markedKeys, onSelect, flat }: Props) {
   ]
 
   return (
-    <div className={`${styles.calendar} ${flat ? styles.flat : ''}`}>
-      <div className={styles.header}>
-        <button
-          className={styles.nav}
-          onClick={() => shiftMonth(-1)}
-          aria-label="Предыдущий месяц"
-        >
-          ‹
-        </button>
-        <span className={styles.month}>{monthLabel}</span>
-        <button
-          className={styles.nav}
-          onClick={() => shiftMonth(1)}
-          aria-label="Следующий месяц"
-        >
-          ›
-        </button>
+    <div className={cn(!flat && 'rounded-3xl border border-border/70 bg-card p-4')}>
+      <div className="mb-2 flex items-center justify-between">
+        <Button variant="ghost" size="icon" onClick={() => shiftMonth(-1)} aria-label="Предыдущий месяц">
+          <ChevronLeft />
+        </Button>
+        <span className="text-base font-bold first-letter:uppercase">{monthLabel}</span>
+        <Button variant="ghost" size="icon" onClick={() => shiftMonth(1)} aria-label="Следующий месяц">
+          <ChevronRight />
+        </Button>
       </div>
 
-      <div className={styles.grid}>
+      <div className="grid grid-cols-7 gap-y-1 text-center">
         {WEEKDAYS.map((w) => (
-          <span key={w} className={styles.weekday}>
+          <span key={w} className="pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {w}
           </span>
         ))}
@@ -79,26 +70,29 @@ export function Calendar({ selectedKey, markedKeys, onSelect, flat }: Props) {
           return (
             <button
               key={key}
-              className={[
-                styles.day,
-                isSelected ? styles.selected : '',
-                isToday && !isSelected ? styles.today : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              className={cn(
+                'relative mx-auto flex size-10 items-center justify-center rounded-full text-[15px] font-medium tabular-nums transition-colors',
+                isSelected
+                  ? 'bg-primary font-bold text-primary-foreground'
+                  : 'hover:bg-accent',
+                isToday && !isSelected && 'font-bold text-primary ring-1 ring-primary/40',
+              )}
               onClick={() => onSelect(key)}
+              aria-pressed={isSelected}
             >
               {day}
-              {marked && <span className={styles.dot} />}
+              {marked && (
+                <span
+                  className={cn(
+                    'absolute bottom-1 size-1 rounded-full',
+                    isSelected ? 'bg-primary-foreground' : 'bg-primary',
+                  )}
+                />
+              )}
             </button>
           )
         })}
       </div>
     </div>
   )
-}
-
-function parseKey(key: string): Date {
-  const [y, m, d] = key.split('-').map(Number)
-  return new Date(y, m - 1, d)
 }
