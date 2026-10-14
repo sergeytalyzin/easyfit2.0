@@ -12,6 +12,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { formatDate } from '@/utils/date'
 import { lastWorkoutOf, workoutsOf } from '@/utils/workouts'
 import { cn } from '@/lib/utils'
+import { summarizeSets } from '@/utils/sets'
 import type { Workout } from '@/types'
 
 export function PersonPage() {
@@ -175,21 +176,20 @@ function TemplateCard({ workout, onOpen }: { workout: Workout; onOpen: () => voi
             <p className="pb-3 text-sm text-muted-foreground">Упражнений пока нет</p>
           ) : (
             <ul className="mb-3 flex flex-col divide-y divide-border/50">
-              {workout.exercises.map((ex) => (
-                <li key={ex.id} className="flex items-baseline justify-between gap-3 py-2">
-                  <span className="min-w-0 truncate text-sm font-semibold">
-                    {ex.name || 'Без названия'}
-                  </span>
-                  <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-                    {ex.sets.length
-                      ? ex.sets
-                          .slice(0, 3)
-                          .map((s) => `${s.weight.toLocaleString('ru-RU')}×${s.reps}`)
-                          .join(', ')
-                      : '—'}
-                  </span>
-                </li>
-              ))}
+              {workout.exercises.map((ex) => {
+                const { lines, moreSets } = summarizeSets(ex.sets)
+                return (
+                  <li key={ex.id} className="flex items-baseline justify-between gap-3 py-2">
+                    <span className="min-w-0 truncate text-sm font-semibold">
+                      {ex.name || 'Без названия'}
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end text-xs font-medium tabular-nums text-muted-foreground">
+                      {lines.length === 0 ? '—' : lines.map((l, i) => <span key={i}>{l}</span>)}
+                      {moreSets > 0 && <span className="opacity-70">ещё {moreSets} подх.</span>}
+                    </span>
+                  </li>
+                )
+              })}
             </ul>
           )}
 

@@ -4,7 +4,7 @@ import type { Exercise, WorkoutSet } from '@/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SetRow, type SetMode } from './SetRow'
-import { formatRange, isEffectiveSet, planOf, samePlan } from '@/utils/sets'
+import { groupSets, isEffectiveSet, summarizeSets } from '@/utils/sets'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -63,7 +63,7 @@ export function ExerciseItem({
             </span>
             <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
           </span>
-          <span className="mt-0.5 block text-xs font-medium tabular-nums text-muted-foreground">
+          <span className="mt-0.5 block truncate text-xs font-medium tabular-nums text-muted-foreground">
             {mode === 'plan' ? planSummary(sets) : factSummary(sets, doneCount)}
           </span>
         </button>
@@ -123,16 +123,12 @@ export function ExerciseItem({
   )
 }
 
-// «3 × 8–12 · 60–70 кг», если подходы одинаковые; иначе «4 подх. · до 80 кг».
+// «6 × 10 · 20 кг»; разные подходы — группами: «2 × 6–8 · 80 кг, 1 × 10 · 70 кг».
+// В одну строку влезают две группы; при трёх и более — первая и «ещё N подх.».
 function planSummary(sets: WorkoutSet[]): string {
   if (sets.length === 0) return 'Нет подходов'
-  const first = planOf(sets[0])
-  if (sets.every((s) => samePlan(planOf(s), first))) {
-    const weight = first.weight > 0 ? ` · ${formatRange(first.weight, first.weightMax)} кг` : ''
-    return `${sets.length} × ${formatRange(first.reps, first.repsMax)}${weight}`
-  }
-  const top = Math.max(...sets.map((s) => s.weightMax ?? s.weight))
-  return `${sets.length} подх.${top > 0 ? ` · до ${top.toLocaleString('ru-RU')} кг` : ''}`
+  const { lines, moreSets } = summarizeSets(sets, groupSets(sets).length > 2 ? 1 : 2)
+  return lines.join(', ') + (moreSets ? `, ещё ${moreSets} подх.` : '')
 }
 
 function factSummary(sets: WorkoutSet[], doneCount: number): string {

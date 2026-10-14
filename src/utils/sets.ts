@@ -31,3 +31,41 @@ export function samePlan(a: SetPlan, b: SetPlan): boolean {
     a.repsMax === b.repsMax
   )
 }
+
+// Подряд идущие одинаковые подходы: [80×8, 80×8, 70×10] → 2 × 8 · 80 кг, 1 × 10 · 70 кг.
+export interface SetGroup {
+  count: number
+  plan: SetPlan
+}
+
+export function groupSets(sets: WorkoutSet[]): SetGroup[] {
+  const groups: SetGroup[] = []
+  for (const s of sets) {
+    const plan = planOf(s)
+    const last = groups[groups.length - 1]
+    if (last && samePlan(last.plan, plan)) last.count++
+    else groups.push({ count: 1, plan })
+  }
+  return groups
+}
+
+// «6 × 10 · 20 кг»; без веса (собственный вес) — «3 × 8–12».
+export function formatSetGroup({ count, plan }: SetGroup): string {
+  const reps = `${count} × ${formatRange(plan.reps, plan.repsMax)}`
+  return plan.weight > 0 || plan.weightMax !== undefined
+    ? `${reps} · ${formatRange(plan.weight, plan.weightMax)} кг`
+    : reps
+}
+
+// Краткая сводка плана: до maxGroups строк, остальное — «ещё N подх.».
+export function summarizeSets(
+  sets: WorkoutSet[],
+  maxGroups = 2,
+): { lines: string[]; moreSets: number } {
+  const groups = groupSets(sets)
+  const shown = groups.slice(0, maxGroups)
+  return {
+    lines: shown.map(formatSetGroup),
+    moreSets: groups.slice(maxGroups).reduce((n, g) => n + g.count, 0),
+  }
+}
