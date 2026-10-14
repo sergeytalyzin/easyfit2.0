@@ -1,0 +1,84 @@
+:root {
+  /* Цвета в стиле iOS */
+  --bg: #f2f3f7;
+  --card: #ffffff;
+  --fill: #eef0f4;
+  --blue: #007aff;
+  --red: #ff3b30;
+  --text: #1c1c1e;
+  --text-secondary: #8a8a8e;
+  --text-tertiary: #c4c4c8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* Мягкий светлый фон с лёгким градиентом — premium-ощущение */
+  background: linear-gradient(180deg, #f7f8fc 0%, #eceef4 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+    system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+input,
+button {
+  font-family: inherit;
+}
+
+.container {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px
+    calc(32px + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+/* --- Микро-анимации (лёгкие, быстрые, без тормозов) --- */
+
+/* Появление карточек / блоков */
+.appear {
+  animation: appearKf 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes appearKf {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tap/active эффект на кликабельных карточках */
+[class*='item'],
+.appear {
+  transition: transform 0.12s ease;
+}
+[role='button']:active,
+a:active > *,
+.container [class*='item']:active {
+  transform: scale(0.985);
+}
+
+/* Уважаем настройку «уменьшить движение» */
+@media (prefers-reduced-motion: reduce) {
+  .appear {
+    animation: none;
+  }
+  * {
+    transition: none !important;
+  }
+}

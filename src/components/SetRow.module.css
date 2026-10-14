@@ -1,0 +1,77 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.num {
+  flex: 0 0 22px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  background: var(--fill);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.input {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  outline: none;
+  text-align: right;
+}
+
+/* Прячем стрелки number-инпута */
+.input::-webkit-outer-spin-button,
+.input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.unit {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex: 0 0 auto;
+}
+
+.times {
+  color: var(--text-secondary);
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+
+.delete {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 15px;
+  padding: 8px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.delete:active {
+  opacity: 0.5;
+}

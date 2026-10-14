@@ -1,0 +1,48 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+
+.avatarBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.avatarBtn:active {
+  opacity: 0.7;
+}
+
+.avatarHint {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.input {
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: var(--fill);
+  border-radius: 16px;
+  padding: 16px 18px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+  text-align: center;
+}

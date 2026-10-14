@@ -1,0 +1,68 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.back {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--blue);
+  font-size: 17px;
+  font-family: inherit;
+  padding: 4px 0;
+  margin-top: 10px;
+  align-self: flex-start;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  padding: 0;
+  outline: none;
+  width: 100%;
+}
+
+.date {
+  font-size: 15px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.exercises {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.deleteWorkout {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--red);
+  font-family: inherit;
+  font-size: 16px;
+  padding: 12px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.missing {
+  color: var(--text-secondary);
+  margin-top: 24px;
+}

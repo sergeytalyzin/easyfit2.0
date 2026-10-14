@@ -1,0 +1,84 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chevron {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  transform: rotate(90deg);
+  transition: transform 0.2s ease;
+}
+.chevronOpen {
+  transform: rotate(-90deg);
+}
+
+.count {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.name {
+  flex: 1;
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 2px 0;
+  outline: none;
+  min-width: 0;
+}
+
+.remove {
+  appearance: none;
+  border: none;
+  background: var(--fill);
+  color: var(--text-tertiary);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 13px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.remove:active {
+  opacity: 0.5;
+}
+
+.sets {
+  display: flex;
+  flex-direction: column;
+}
+
+.addSet {
+  margin-top: 2px;
+}
