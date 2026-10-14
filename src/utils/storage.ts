@@ -2,7 +2,7 @@
 // Это единственное место, которое знает про localStorage — поэтому
 // в будущем легко заменить хранилище (IndexedDB, экспорт/импорт, облако).
 
-import type { CatalogExercise, CompletedWorkout, Person, Workout } from '../types'
+import type { CatalogExercise, CompletedWorkout, Person, RunState, Workout } from '../types'
 import { uid } from './id'
 
 const WORKOUTS_KEY = 'gym-tracker:workouts'
@@ -10,6 +10,8 @@ const COMPLETED_KEY = 'gym-tracker:completed'
 const PEOPLE_KEY = 'gym-tracker:people'
 const FAVORITE_KEY = 'gym-tracker:favorite'
 const CUSTOM_EXERCISES_KEY = 'gym-tracker:custom-exercises'
+const REST_KEY = 'gym-tracker:rest-sec'
+const RUN_KEY = 'gym-tracker:run'
 // Версия схемы данных. Пригодится для будущих миграций при изменении формата.
 const SCHEMA_VERSION = 2
 
@@ -185,6 +187,47 @@ export function saveCustomExercises(exercises: CatalogExercise[]): void {
     localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(data))
   } catch (e) {
     console.error('Не удалось сохранить упражнения:', e)
+  }
+}
+
+// --- Таймер отдыха ---
+// Общее время отдыха и состояние открытого экрана выполнения (чтобы
+// перезагрузка или сворачивание не сбрасывали таймер).
+
+export const DEFAULT_REST_SEC = 120
+
+export function loadRestSec(): number {
+  try {
+    const v = Number(localStorage.getItem(REST_KEY))
+    return v > 0 ? v : DEFAULT_REST_SEC
+  } catch {
+    return DEFAULT_REST_SEC
+  }
+}
+
+export function saveRestSec(sec: number): void {
+  try {
+    localStorage.setItem(REST_KEY, String(sec))
+  } catch (e) {
+    console.error('Не удалось сохранить время отдыха:', e)
+  }
+}
+
+export function loadRun(): RunState | null {
+  try {
+    const raw = localStorage.getItem(RUN_KEY)
+    return raw ? (JSON.parse(raw) as RunState) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveRun(state: RunState | null): void {
+  try {
+    if (state) localStorage.setItem(RUN_KEY, JSON.stringify(state))
+    else localStorage.removeItem(RUN_KEY)
+  } catch (e) {
+    console.error('Не удалось сохранить таймер:', e)
   }
 }
 

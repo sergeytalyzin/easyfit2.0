@@ -34,6 +34,7 @@ interface Props {
   ops: ExerciseOps
   mode: SetMode // plan — шаблон (диапазоны), fact — выполненная тренировка
   defaultOpen?: boolean
+  onRun?: (exerciseId: string) => void // свайп вправо — экран таймера
 }
 
 const EMPTY_PLAN: SetPlan = { weight: 0, reps: 10 }
@@ -42,7 +43,7 @@ const EMPTY_PLAN: SetPlan = { weight: 0, reps: 10 }
 const NEW_EXERCISE = 'new'
 
 // Список упражнений + добавление/замена упражнения через справочник.
-export function ExerciseList({ ownerId, exercises, ops, mode, defaultOpen }: Props) {
+export function ExerciseList({ ownerId, exercises, ops, mode, defaultOpen, onRun }: Props) {
   const { catalog } = useExerciseCatalogContext()
   // id упражнения, для которого открыт выбор, или NEW_EXERCISE; null — закрыт.
   const [pickingFor, setPickingFor] = useState<string | null>(null)
@@ -84,6 +85,7 @@ export function ExerciseList({ ownerId, exercises, ops, mode, defaultOpen }: Pro
             onEditSet={(setId) => setEditing({ exerciseId: ex.id, setId })}
             onUpdateSet={(setId, patch) => ops.updateSet(ownerId, ex.id, setId, patch)}
             onDeleteSet={(setId) => ops.deleteSet(ownerId, ex.id, setId)}
+            onSwipeRight={onRun && (() => onRun(ex.id))}
           />
         ))}
       </div>

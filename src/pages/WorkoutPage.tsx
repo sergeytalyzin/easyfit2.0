@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { CalendarDays, CircleCheck, Copy, Settings, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { CalendarDays, CircleCheck, Copy, Hand, Settings, Trash2 } from 'lucide-react'
 import { useWorkoutsContext } from '@/hooks/WorkoutsContext'
 import { usePeopleContext } from '@/hooks/PeopleContext'
 import { useCompletedWorkoutsContext } from '@/hooks/CompletedWorkoutsContext'
@@ -13,7 +13,9 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyWorkoutSheet } from '@/components/CopyWorkoutSheet'
 import { MarkWorkoutSheet } from '@/components/MarkWorkoutSheet'
 import { ExerciseCatalogSheet } from '@/components/ExerciseCatalogSheet'
+import { Card } from '@/components/ui/card'
 import { formatDate } from '@/utils/date'
+import { takeFlash } from '@/utils/flash'
 
 export function WorkoutPage() {
   const { id = '', personId = '' } = useParams()
@@ -23,6 +25,13 @@ export function WorkoutPage() {
   const [markOpen, setMarkOpen] = useState(false)
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  // «Сохранено в прогресс» после экрана таймера — показываем несколько секунд.
+  const [flash, setFlashState] = useState(takeFlash)
+  useEffect(() => {
+    if (!flash) return
+    const t = setTimeout(() => setFlashState(null), 5000)
+    return () => clearTimeout(t)
+  }, [flash])
   const { people } = usePeopleContext()
   const { completed, completeTemplate } = useCompletedWorkoutsContext()
   const workoutsApi = useWorkoutsContext()
@@ -93,6 +102,18 @@ export function WorkoutPage() {
         }
       />
 
+      {flash && (
+        <Card className="flex items-center gap-3 border-primary/30 bg-primary/10 p-4 animate-in fade-in slide-in-from-top-2">
+          <CircleCheck className="size-5 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1 text-sm font-semibold">{flash.text}</span>
+          {flash.link && (
+            <Link to={flash.link.to} className="shrink-0 text-sm font-bold text-primary">
+              {flash.link.label}
+            </Link>
+          )}
+        </Card>
+      )}
+
       <WorkoutStats exercises={workout.exercises} />
 
       <Button size="lg" className="w-full" onClick={() => setMarkOpen(true)}>
@@ -100,14 +121,22 @@ export function WorkoutPage() {
       </Button>
 
       <section className="flex flex-col gap-3">
-        <h2 className="px-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-          Упражнения
-        </h2>
+        <div className="flex items-baseline justify-between gap-3 px-1">
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Упражнения
+          </h2>
+          {workout.exercises.length > 0 && (
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground/80">
+              <Hand className="size-3" /> Свайп вправо — таймер отдыха
+            </span>
+          )}
+        </div>
         <ExerciseList
           ownerId={workout.id}
           exercises={workout.exercises}
           ops={workoutsApi}
           mode="plan"
+          onRun={(exerciseId) => navigate(`/person/${personId}/workout/${workout.id}/run/${exerciseId}`)}
         />
       </section>
 

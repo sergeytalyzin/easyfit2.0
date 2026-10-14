@@ -82,3 +82,21 @@ export interface CompletedWorkout {
   createdAt: string // ISO-строка момента отметки
   exercises: Exercise[] // копия упражнений шаблона на момент отметки
 }
+
+// Режим выполнения упражнения с таймером отдыха (живёт до закрытия экрана).
+export interface RunSet {
+  weight: number
+  reps: number
+  done: boolean
+}
+
+export interface RunState {
+  workoutId: string
+  exerciseId: string
+  day: string // YYYY-MM-DD — в какую дату сохранять результат
+  sets: RunSet[]
+  current: number // индекс текущего подхода
+  phase: 'set' | 'rest' | 'alarm' | 'finished'
+  restEndsAt: number | null // момент окончания отдыха (ms) — переживает сворачивание
+  restTotal: number // длительность текущего отдыха, сек
+}

@@ -1,8 +1,8 @@
 // Расчёт прогресса по упражнениям из выполненных тренировок.
 // Сила, повторения и объём — отдельные метрики: рост объёма не выдаём за рост силы.
 
-import type { CatalogExercise, CompletedWorkout, Exercise } from '../types'
-import { exerciseNameKey, findCatalogEntry } from './exercises'
+import type { CatalogExercise, CompletedWorkout, Exercise, WorkoutSet } from '../types'
+import { exerciseNameKey, findCatalogEntry, sameExercise } from './exercises'
 import { isEffectiveSet } from './sets'
 
 export type Metric = 'strength' | 'reps' | 'volume'
@@ -177,4 +177,25 @@ export function verdictFor(p: ExerciseProgress, index: number): Verdict {
     if (d !== 0) return { kind: d > 0 ? 'volume' : 'same', text: `Объём ${d > 0 ? '+' : '−'}${Math.abs(d)}%` }
   }
   return { kind: 'same', text: 'Без изменений' }
+}
+
+// Выполненные подходы упражнения из последней записи не позже даты day —
+// чтобы подставить «как в прошлый раз».
+export function lastResult(
+  records: CompletedWorkout[],
+  exercise: Pick<Exercise, 'name' | 'catalogId'>,
+  day: string,
+): WorkoutSet[] {
+  const sorted = records
+    .filter((r) => r.date <= day)
+    .sort((a, b) =>
+      a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date),
+    )
+  for (const r of sorted) {
+    const sets = r.exercises
+      .filter((e) => sameExercise(e, exercise))
+      .flatMap((e) => e.sets.filter(isEffectiveSet))
+    if (sets.length) return sets
+  }
+  return []
 }

@@ -17,6 +17,7 @@ import { WorkoutPage } from './pages/WorkoutPage'
 import { ProgressPage } from './pages/ProgressPage'
 import { ProgressExercisePage } from './pages/ProgressExercisePage'
 import { CompletedWorkoutPage } from './pages/CompletedWorkoutPage'
+import { WorkoutRunPage } from './pages/WorkoutRunPage'
 
 // Новый экран открывается сверху (HashRouter сам прокрутку не сбрасывает).
 function ScrollToTop() {
@@ -78,6 +79,10 @@ export default function App() {
                   <Route
                     path="/person/:personId/workout/:id"
                     element={<WorkoutPage />}
+                  />
+                  <Route
+                    path="/person/:personId/workout/:id/run/:exerciseId"
+                    element={<WorkoutRunPage />}
                   />
                   <Route path="*" element={<PeoplePage />} />
                 </Routes>
